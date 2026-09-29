@@ -36,7 +36,11 @@ h1{font:700 26px/1.2 "Archivo",system-ui,sans-serif;margin:0 0 4px;letter-spacin
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{font:500 13px "IBM Plex Sans",sans-serif;padding:8px 14px;border:0;background:var(--field);color:var(--ink);cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--water-deep);color:#fff}
-.scene{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px}
+.scene{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px}
+.hit{fill:transparent;cursor:pointer}
+.hit:focus-visible{outline:3px solid #ffd60a;outline-offset:0}
+.sedit{position:absolute;margin:0;padding:0 2px;border:0;border-bottom:2px solid #ffd60a;background:transparent;font-family:"IBM Plex Mono",monospace;font-weight:500;text-align:right;outline:none;-moz-appearance:textfield;appearance:textfield;z-index:5}
+.sedit::-webkit-outer-spin-button,.sedit::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .scene svg{display:block;width:100%;height:auto}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
@@ -82,15 +86,12 @@ body[data-mode="site"] .demo-only{display:none}
 .offset{margin-top:14px;background:#ff5a00;color:#fff;border:3px solid #14252b;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px}
 .offset h2{font:700 22px/1.2 "Archivo",system-ui,sans-serif;margin:0}
 .offset p{margin:0;font-size:14px}
-.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.ogrid{display:grid;grid-template-columns:1fr;gap:14px}
 .obox{background:#14252b;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
 .obox label{color:#ffd9c2;font-size:14px;margin:0}
 .obig{font:500 48px/1.1 "IBM Plex Mono",monospace;color:#fff}
 .obig small{font-size:20px;color:#ffd9c2;margin-left:6px}
 .oform{font:400 13px "IBM Plex Mono",monospace;color:#ffd9c2}
-.obox input[type=number]{font-size:40px;font-weight:500;padding:8px 12px;background:#fff;color:#14252b;border:3px solid #ffd60a;border-radius:8px}
-.obox .btns button{background:#fff;color:#14252b;border-color:#fff}
-.obox .btns button:disabled{opacity:.4}
 .omode{font:500 13px "IBM Plex Sans",sans-serif;color:#ffd60a}
 
 .adjust{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px}
@@ -140,6 +141,8 @@ body[data-mode="site"] .demo-only{display:none}
       </g>
       <line id="gLine" x1="150" y1="320" x2="330" y2="320" stroke="var(--gauge)" stroke-width="2" stroke-dasharray="5 3"/>
       <text id="gVal" x="145" y="315" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="500" fill="var(--ink)"></text>
+      <rect id="gHitL" class="hit" x="40" y="296" width="110" height="26" tabindex="0" role="button" aria-label="Edit level reading"/>
+      <rect id="gHitS" class="hit" x="232" y="142" width="72" height="180" tabindex="0" role="button" aria-label="Edit gauge reading"/>
 
       <g id="bubG">
       <path d="M560 150 V200 L420 300 L400 316" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linejoin="round"/>
@@ -151,6 +154,7 @@ body[data-mode="site"] .demo-only{display:none}
       <rect id="hsBox" x="530" y="46" width="140" height="104" rx="6" fill="var(--panel)" stroke="var(--hs)" stroke-width="2"/>
       <rect x="542" y="58" width="116" height="38" rx="4" fill="#0d1c21"/>
       <text id="hsVal" x="650" y="86" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="24" fill="#7fe3b0"></text>
+      <rect id="hsHit" class="hit" x="542" y="58" width="116" height="38" tabindex="0" role="button" aria-label="Edit HS40 reading"/>
       <text x="600" y="120" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="var(--ink)" id="hsName">HS40</text>
       <text x="600" y="138" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)" id="hsSub">gas purge bubbler</text>
 
@@ -160,6 +164,7 @@ body[data-mode="site"] .demo-only{display:none}
       <rect x="740" y="46" width="130" height="104" rx="6" fill="var(--panel)" stroke="var(--rtu)" stroke-width="2"/>
       <rect x="750" y="58" width="110" height="38" rx="4" fill="#0d1c21"/>
       <text id="rtuVal" x="850" y="86" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="24" fill="#ffb46b"></text>
+      <rect id="rtuHit" class="hit" x="750" y="58" width="110" height="38" tabindex="0" role="button" aria-label="Edit RTU reading"/>
       <text x="805" y="120" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="var(--ink)">RTU</text>
       <text id="rtuSub" x="805" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)"></text>
     </svg>
@@ -205,28 +210,28 @@ body[data-mode="site"] .demo-only{display:none}
     </section>
 
     <section class="card" aria-labelledby="hRTU">
-      <div class="head"><div><h2 id="hRTU">RTU</h2><p class="role">Range and current offset, new offset below</p></div><span class="badge" id="rtuBadge">0–30 m</span></div>
+      <div class="head"><div><h2 id="hRTU">RTU</h2><p class="role">Range, reading and current offset. The new offset is shown below.</p></div><span class="badge" id="rtuBadge">0–30 m</span></div>
       <div>
         <label for="rtuRange">Range (0 to m), same as <span class="dev">HS40</span></label>
         <input id="rtuRange" type="number" step="1" min="1" max="200" value="30">
         <div class="btns" id="rtuPre" style="margin-top:6px"></div>
       </div>
       <div class="warn" id="rangeWarn"></div>
-      <div class="fill" id="fillCur">
-        <span class="chip">Enter RTU setting</span>
-        <label for="curOff">Offset already set in the RTU now (m)</label>
-        <input id="curOff" type="number" step="0.01" min="-10" max="10" value="0" inputmode="decimal">
-      </div>
       <div class="fill" id="fillRaw">
         <span class="chip">Enter reading</span>
         <label for="rawIn">RTU display shows now (m)</label>
         <input id="rawIn" type="number" step="0.01" placeholder="e.g. 9.75" inputmode="decimal">
       </div>
+      <div class="fill" id="fillCur">
+        <span class="chip">Enter RTU Offset</span>
+        <label for="curOff">Offset already set in the RTU now (m)</label>
+        <input id="curOff" type="number" step="0.01" min="-10" max="10" value="0" inputmode="decimal">
+      </div>
       <div class="demo-only">
         <label for="wiring">Demo: RTU input error (<span id="wiringV">−0.40</span> m)</label>
         <input id="wiring" type="range" min="-1" max="1" step="0.01" value="-0.4">
       </div>
-      <p class="note">Enter the offset the RTU already has (0 if none, or for example 0.03 or −0.03 when servicing), then the value it displays now.</p>
+      <p class="note">Enter the value the RTU displays now, then the offset the RTU already has (0 if none, or for example 0.03 or −0.03 when servicing).</p>
     </section>
   </div>
 
@@ -238,22 +243,9 @@ body[data-mode="site"] .demo-only{display:none}
     </div>
     <div class="ogrid">
       <div class="obox">
-        <label>Calculated offset (new value to set in the RTU)</label>
+        <label>Offset to set in the RTU</label>
         <div class="obig"><span id="calcOff">–</span><small>m</small></div>
         <div class="oform" id="calcForm">Enter the <span class="dev">HS40</span> display and the RTU reading.</div>
-      </div>
-      <div class="obox">
-        <label for="offset">New offset to set in the RTU (m), editable</label>
-        <input id="offset" type="number" step="0.01" min="-10" max="10" inputmode="decimal">
-        <div class="btns">
-          <button type="button" data-d="-0.1">−0.10</button>
-          <button type="button" data-d="-0.01">−0.01</button>
-          <button type="button" data-d="0.01">+0.01</button>
-          <button type="button" data-d="0.1">+0.10</button>
-          <button type="button" id="offZero">Set 0</button>
-          <button type="button" id="useCalc">Use calculated</button>
-        </div>
-        <div class="omode" id="offMode"></div>
       </div>
     </div>
   </section>
@@ -280,7 +272,7 @@ body[data-mode="site"] .demo-only{display:none}
   var st={mode:'site',gaugeOff:false,hsRange:30,rtuRange:30,
           gauge:10,hsErr:0.15,wiring:-0.4,           // demo values
           gaugeSite:null,hsSite:null,rawSite:null,   // site values
-          offMan:null,curOff:0,hsAlt:false};
+          curOff:0,hsAlt:false};
   function dev(){return st.hsAlt?'Green device':'HS40'}          // the device (range)
   function R(){return st.hsAlt?'gauge':'HS40'}                    // what the RTU follows
   function RR(){return st.hsAlt?'gauge reading':'HS40 display'}
@@ -316,7 +308,7 @@ body[data-mode="site"] .demo-only{display:none}
     var ref=st.hsAlt?g:hs;                     // what the RTU must match
     var ready=(ref!=null&&raw!=null);
     var calc=ready?r2(ref-raw):null;
-    var off=st.offMan!=null?st.offMan:(calc!=null?calc:0);
+    var off=calc!=null?calc:0;
     var val=raw!=null?raw+off:null;
     return {g:g,gUse:gUse,hs:hs,ref:ref,raw:raw,disp:disp,ready:ready,calc:calc,off:off,val:val};
   }
@@ -392,7 +384,7 @@ body[data-mode="site"] .demo-only{display:none}
     $('hHS').textContent=alt?'Green water level device':'HS40';
     $('hsRole').textContent=alt?'Replaces the HS40. Not the reference now: the RTU follows the water level gauge.':'Compact gas purge compressor and bubbler system';
     $('sub').textContent='Set the RTU range to match the '+dev()+', then set the RTU offset so the RTU value equals the '+RR()+'. Nothing on the '+dev()+' is changed.';
-    $('offDesc').textContent='The calculated offset makes the RTU value equal to the '+RR()+'. Type a different value only if needed.';
+    $('offDesc').textContent='Enter this offset in the RTU so the RTU value equals the '+RR()+'.';
     $('bdHs').textContent=alt?'not used':'reference';
     $('bdGauge').textContent=alt?'reference':'optional';
     $('gCardNote').textContent=alt?'The RTU offset follows this reading.':'Only a cross-check. It never changes the offset.';
@@ -437,7 +429,6 @@ body[data-mode="site"] .demo-only{display:none}
     setVal($('hsIn'),d.hs==null?null:r2(d.hs));
     setVal($('rawIn'),d.disp==null?null:r2(d.disp));
     setVal($('curOff'),st.curOff);
-    setVal($('offset'),r2(d.off));
     $('hsErrV').textContent=sg(st.hsErr);$('wiringV').textContent=sg(st.wiring);
     $('rtuBadge').textContent='0\u2013'+st.rtuRange+' m';
     Array.prototype.forEach.call($('hsPre').children,function(b){b.setAttribute('aria-pressed',String(+b.dataset.m===st.hsRange))});
@@ -467,6 +458,11 @@ body[data-mode="site"] .demo-only{display:none}
     gl.setAttribute('stroke',d.gUse!=null?'var(--gauge)':'var(--hs)');
     gl.style.display=lvl==null?'none':'';
     $('gVal').setAttribute('y',wy-5);
+    $('gHitL').setAttribute('y',wy-24);
+    $('gHitL').style.display=lvl==null?'none':'';
+    var gActive=(!st.gaugeOff||alt);
+    $('gHitS').style.display=gActive?'':'none';
+    $('hsHit').style.display=alt?'none':'';
     $('gVal').textContent=lvl==null?'':(d.gUse!=null?f2(d.gUse)+' m':dev()+' '+f2(d.hs)+' m');
     $('hsVal').textContent=d.hs==null?'\u2013':f2(d.hs)+' m';
     $('rtuVal').textContent=d.disp==null?'\u2013':f2(d.disp)+' m';
@@ -476,10 +472,6 @@ body[data-mode="site"] .demo-only{display:none}
     // offset panel
     $('calcOff').textContent=d.calc==null?'\u2013':sg(d.calc);
     $('calcForm').textContent=d.ready?((alt?'Gauge ':'HS40 ')+f2(d.ref)+' \u2212 RTU '+f2(d.disp)+' + current offset '+sg(st.curOff)+' = '+sg(d.calc)+' m'):'Enter the '+RR()+' and the RTU reading.';
-    $('useCalc').disabled=(st.offMan==null);
-    $('offMode').textContent=st.offMan==null
-      ?(d.ready?'Auto: this is the calculated value.':'Waiting for readings.')
-      :'Manual value in use'+(d.calc!=null?' (calculated: '+sg(d.calc)+' m)':'')+'.';
 
     // status
     var sEl=$('status'),msg=$('statusMsg');
@@ -520,14 +512,14 @@ body[data-mode="site"] .demo-only{display:none}
       fn(raw===''||isNaN(v)?null:v);render();
     });
   }
-  $('mDemo').addEventListener('click',function(){st.mode='demo';st.offMan=null;render()});
+  $('mDemo').addEventListener('click',function(){st.mode='demo';render()});
   $('mSite').addEventListener('click',function(){
     if(st.mode==='demo'){
       var d=compute();st.gaugeSite=r2(d.g);st.hsSite=r2(d.hs);st.rawSite=r2(d.disp);
     }
-    st.mode='site';st.offMan=null;render();
+    st.mode='site';render();
   });
-  $('hsAlt').addEventListener('change',function(e){st.hsAlt=e.target.checked;if(st.hsAlt)st.gaugeOff=false;st.offMan=null;render()});
+  $('hsAlt').addEventListener('change',function(e){st.hsAlt=e.target.checked;if(st.hsAlt)st.gaugeOff=false;render()});
   $('gaugeOff').addEventListener('change',function(e){st.gaugeOff=e.target.checked;render()});
   numIn('gauge',function(v){if(st.mode==='demo'){if(v!=null)st.gauge=clamp(v,0,st.hsRange)}else st.gaugeSite=v});
   $('gaugeSl').addEventListener('input',function(e){st.gauge=+e.target.value;render()});
@@ -536,15 +528,95 @@ body[data-mode="site"] .demo-only{display:none}
   numIn('hsIn',function(v){st.hsSite=v});
   numIn('rawIn',function(v){st.rawSite=v});
   numIn('curOff',function(v){st.curOff=v==null?0:clamp(v,-10,10)});
-  numIn('offset',function(v){if(v!=null)st.offMan=clamp(v,-10,10)});
   $('hsErr').addEventListener('input',function(e){st.hsErr=+e.target.value;render()});
   $('wiring').addEventListener('input',function(e){st.wiring=+e.target.value;render()});
-  Array.prototype.forEach.call(document.querySelectorAll('[data-d]'),function(b){
-    b.addEventListener('click',function(){var d=compute();st.offMan=clamp(r2(d.off+parseFloat(b.dataset.d)),-10,10);render()});
-  });
-  $('offZero').addEventListener('click',function(){st.offMan=0;render()});
-  $('useCalc').addEventListener('click',function(){st.offMan=null;render()});
-  ['gauge','hsRange','rtuRange','hsIn','rawIn','curOff','offset'].forEach(function(id){$(id).addEventListener('blur',render)});
+  ['gauge','hsRange','rtuRange','hsIn','rawIn','curOff'].forEach(function(id){$(id).addEventListener('blur',render)});
+
+
+  // ---- edit the three readings directly on the picture
+  var editing=null;
+  function endEdit(){
+    if(!editing)return;
+    var e=editing;editing=null;
+    if(e.input.parentNode)e.input.parentNode.removeChild(e.input);
+    e.textEl.style.visibility='';
+  }
+  function commitReading(kind,v){
+    var d=compute();
+    if(v==null){
+      if(st.mode==='site'){
+        if(kind==='gauge')st.gaugeSite=null;
+        if(kind==='hs')st.hsSite=null;
+        if(kind==='rtu')st.rawSite=null;
+      }
+      return;
+    }
+    if(st.mode==='demo'){
+      if(kind==='gauge')st.gauge=clamp(v,0,st.hsRange);
+      if(kind==='hs')st.hsErr=r2(clamp(v,0,st.hsRange)-st.gauge);
+      if(kind==='rtu'){
+        var hsC=d.hs!=null?d.hs:0;
+        st.wiring=r2(v-st.curOff-hsC*st.rtuRange/st.hsRange);
+      }
+    }else{
+      if(kind==='gauge')st.gaugeSite=v;
+      if(kind==='hs')st.hsSite=v;
+      if(kind==='rtu')st.rawSite=v;
+    }
+  }
+  function startEdit(kind){
+    endEdit();
+    var d=compute(),alt=st.hsAlt;
+    var box,textEl,cur,color;
+    var svg=$('scene'),scene=svg.parentNode;
+    var sr=svg.getBoundingClientRect(),cr=scene.getBoundingClientRect(),k=sr.width/900;
+    var ox=sr.left-cr.left,oy=sr.top-cr.top;
+    if(kind==='hs'){
+      if(alt)return;
+      box={x:542,y:58,w:116,h:38,fs:24};textEl=$('hsVal');cur=d.hs;color='#7fe3b0';
+    }else if(kind==='rtu'){
+      box={x:750,y:58,w:110,h:38,fs:24};textEl=$('rtuVal');cur=d.disp;color='#ffb46b';
+    }else{
+      var wy=parseFloat($('water').getAttribute('y'));
+      box={x:55,y:wy-26,w:95,h:26,fs:15};textEl=$('gVal');cur=d.g;color=getComputedStyle(document.body).color;
+    }
+    var inp=document.createElement('input');
+    inp.type='number';inp.step='any';inp.inputMode='decimal';inp.className='sedit';
+    inp.setAttribute('aria-label','Edit reading');
+    inp.value=cur==null?'':r2(cur);
+    inp.style.left=(ox+box.x*k)+'px';inp.style.top=(oy+box.y*k)+'px';
+    inp.style.width=(box.w*k)+'px';inp.style.height=(box.h*k)+'px';
+    inp.style.fontSize=Math.max(16,box.fs*k)+'px';
+    inp.style.color=color;inp.style.caretColor=color;
+    if(kind!=='gauge')inp.style.paddingRight=(8*k)+'px';
+    scene.appendChild(inp);
+    textEl.style.visibility='hidden';
+    editing={input:inp,textEl:textEl};
+    var done=false;
+    function finish(save){
+      if(done)return;done=true;
+      var raw=inp.value,v=parseFloat(raw);
+      endEdit();
+      if(save){commitReading(kind,(raw===''||isNaN(v))?null:v);}
+      render();
+    }
+    inp.addEventListener('keydown',function(e){
+      if(e.key==='Enter'){e.preventDefault();finish(true)}
+      else if(e.key==='Escape'){e.preventDefault();finish(false)}
+    });
+    inp.addEventListener('blur',function(){finish(true)});
+    inp.focus();inp.select();
+  }
+  function wireHit(id,fn){
+    var el=$(id);
+    el.addEventListener('click',fn);
+    el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();fn()}});
+  }
+  wireHit('hsHit',function(){startEdit('hs')});
+  wireHit('rtuHit',function(){startEdit('rtu')});
+  // the level label edits the gauge when the gauge is in use, otherwise the HS40 reading
+  wireHit('gHitL',function(){var d=compute();startEdit(d.gUse!=null?'gauge':(st.hsAlt?'gauge':'hs'))});
+  wireHit('gHitS',function(){startEdit('gauge')});
 
   render();
 })();
