@@ -1,104 +1,553 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Calculator</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f0f2f5;
-            margin: 0;
-        }
-        .calculator {
-            background-color: #333;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
-            width: 300px;
-        }
-        #display {
-            width: 100%;
-            height: 50px;
-            background-color: #fff;
-            font-size: 24px;
-            text-align: right;
-            padding: 5px 10px;
-            box-sizing: border-box;
-            border: none;
-            border-radius: 5px;
-            margin-bottom: 15px;
-        }
-        .buttons {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-        }
-        button {
-            padding: 20px;
-            font-size: 18px;
-            cursor: pointer;
-            border: none;
-            border-radius: 5px;
-            background-color: #e0e0e0;
-        }
-        button:hover {
-            background-color: #d4d4d4;
-        }
-        button.operator {
-            background-color: #ff9f0a;
-            color: white;
-        }
-        button.operator:hover {
-            background-color: #cc7f08;
-        }
-        button.clear {
-            background-color: #a5a5a5;
-        }
-    </style>
-</head>
-<body>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RTU offset adjustment: river water level</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#e9eef0; --panel:#f8fafa; --ink:#14252b; --muted:#5b6f76; --line:#c3d0d4; --field:#ffffff;
+  --water:#2a7f97; --water-deep:#1c5f74; --ground:#b9a98a; --rtu:#e0741f; --hs:#14252b; --gauge:#2a7f97;
+  --ok:#2f8f5b; --warn:#c98a00; --bad:#c23a2e; --sky:#dbe7ea;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1a1e; --panel:#16252b; --ink:#e3eef1; --muted:#8fa5ad; --line:#2b4049; --field:#0f1a1e;
+    --water:#3aa0bd; --water-deep:#2a7f97; --ground:#6f6448; --rtu:#f28a3b; --hs:#e3eef1; --gauge:#5cc0dc;
+    --ok:#4fbf82; --warn:#e0b030; --bad:#ee6a5c; --sky:#12232a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1a1e; --panel:#16252b; --ink:#e3eef1; --muted:#8fa5ad; --line:#2b4049; --field:#0f1a1e;
+  --water:#3aa0bd; --water-deep:#2a7f97; --ground:#6f6448; --rtu:#f28a3b; --hs:#e3eef1; --gauge:#5cc0dc;
+  --ok:#4fbf82; --warn:#e0b030; --bad:#ee6a5c; --sky:#12232a;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 48px}
+h1{font:700 26px/1.2 "Archivo",system-ui,sans-serif;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 16px;max-width:70ch}
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{font:500 13px "IBM Plex Sans",sans-serif;padding:8px 14px;border:0;background:var(--field);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--water-deep);color:#fff}
+.scene{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px}
+.scene svg{display:block;width:100%;height:auto}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card h2{font:700 17px/1.2 "Archivo",system-ui,sans-serif;margin:0}
+.role{color:var(--muted);font-size:13px;margin:2px 0 0}
+.badge{font:500 12px/1 "IBM Plex Mono",monospace;border:1px solid var(--line);border-radius:4px;padding:5px 7px;color:var(--muted);white-space:nowrap}
+.head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+input[type=number]{width:100%;font:500 15px "IBM Plex Mono",monospace;padding:8px 9px;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink)}
+input[readonly]{opacity:.8;border-style:dashed}
+input[type=range]{width:100%;accent-color:var(--water)}
+:focus-visible{outline:3px solid #14252b;outline-offset:2px;box-shadow:0 0 0 6px #fff}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btns button,.btn{font:500 13px "IBM Plex Mono",monospace;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--field);color:var(--ink);cursor:pointer}
+.btns button[aria-pressed="true"]{background:var(--water-deep);border-color:var(--water-deep);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.locked{font-size:12px;color:var(--muted);margin:0;border-left:3px solid var(--line);padding-left:8px}
+.demo-only{display:block}
+body[data-mode="site"] .demo-only{display:none}
+.warn{display:none;font-size:13px;border-left:3px solid var(--warn);padding:6px 10px;background:var(--field);border-radius:0 6px 6px 0}
+.note{font-size:13px;color:var(--muted);margin:0}
+.card.alt{border:3px solid #2f9e44}
+.card.alt .badge{border-color:#2f9e44;color:#2f9e44}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:14px;color:var(--ink);cursor:pointer;margin:0}
+.chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--water-deep)}
 
-<div class="calculator">
-    <input type="text" id="display" readonly>
-    <div class="buttons">
-        <button class="clear" onclick="clearDisplay()">C</button>
-        <button onclick="appendValue('/')" class="operator">/</button>
-        <button onclick="appendValue('*')" class="operator">*</button>
-        <button onclick="appendValue('-')" class="operator">-</button>
-        
-        <button onclick="appendValue('7')">7</button>
-        <button onclick="appendValue('8')">8</button>
-        <button onclick="appendValue('9')">9</button>
-        <button onclick="appendValue('+')" class="operator">+</button>
-        
-        <button onclick="appendValue('4')">4</button>
-        <button onclick="appendValue('5')">5</button>
-        <button onclick="appendValue('6')">6</button>
-        <button style="grid-row: span 2; height: 100%;" onclick="calculate()" class="operator">=</button>
-        
-        <button onclick="appendValue('1')">1</button>
-        <button onclick="appendValue('2')">2</button>
-        <button onclick="appendValue('3')">3</button>
-        
-        <button style="grid-column: span 2;" onclick="appendValue('0')">0</button>
-        <button onclick="appendValue('.')">.</button>
+/* Fields the installer must fill in */
+.fill{background:#ffd60a;border:3px solid #14252b;border-radius:10px;padding:10px 12px;box-shadow:0 0 0 4px rgba(255,214,10,.35)}
+.fill label{color:#14252b;font-size:14px;font-weight:500;margin-bottom:6px}
+.fill input[type=number]{font-size:26px;padding:10px;background:#fff;color:#14252b;border:2px solid #14252b;border-radius:8px}
+.fill input[type=number]::placeholder{color:#8a8a8a;font-size:16px}
+.fill input:disabled{background:#efe7a8;color:#6d6a4a}
+.fill.off{background:var(--panel);border-color:var(--line);box-shadow:none}
+.fill.off label{color:var(--muted)}
+.fill.off input[type=number]{background:transparent;color:var(--muted);border-color:var(--line)}
+.fill.empty:not(.off){animation:pulse 1.8s ease-in-out infinite}
+.chip{display:inline-block;background:#14252b;color:#ffd60a;font:500 12px "IBM Plex Sans",sans-serif;padding:2px 9px;border-radius:99px;margin-bottom:6px}
+.fill.off .chip{background:var(--line);color:var(--muted)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 4px rgba(255,214,10,.35)}50%{box-shadow:0 0 0 10px rgba(255,214,10,.15)}}
+
+/* Offset: the most important part */
+.offset{margin-top:14px;background:#ff5a00;color:#fff;border:3px solid #14252b;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.offset h2{font:700 22px/1.2 "Archivo",system-ui,sans-serif;margin:0}
+.offset p{margin:0;font-size:14px}
+.ogrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.obox{background:#14252b;border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.obox label{color:#ffd9c2;font-size:14px;margin:0}
+.obig{font:500 48px/1.1 "IBM Plex Mono",monospace;color:#fff}
+.obig small{font-size:20px;color:#ffd9c2;margin-left:6px}
+.oform{font:400 13px "IBM Plex Mono",monospace;color:#ffd9c2}
+.obox input[type=number]{font-size:40px;font-weight:500;padding:8px 12px;background:#fff;color:#14252b;border:3px solid #ffd60a;border-radius:8px}
+.obox .btns button{background:#fff;color:#14252b;border-color:#fff}
+.obox .btns button:disabled{opacity:.4}
+.omode{font:500 13px "IBM Plex Sans",sans-serif;color:#ffd60a}
+
+.adjust{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.adjust h2{font:700 18px/1.2 "Archivo",system-ui,sans-serif;margin:0}
+.status{padding:14px 16px;border-radius:8px;color:#fff}
+.status.ok{background:var(--ok)}.status.warn{background:var(--warn)}.status.bad{background:var(--bad)}.status.wait{background:var(--muted)}
+.status .msg{font:500 17px/1.35 "Archivo",system-ui,sans-serif}
+.zoom svg{display:block;width:100%;height:auto}
+.steps{margin:0;padding-left:20px;color:var(--muted);font-size:14px}
+.steps li{margin:3px 0}
+.bub{animation:rise 2.6s linear infinite}
+@keyframes rise{0%{transform:translateY(0);opacity:.9}100%{transform:translateY(-70px);opacity:0}}
+@media (prefers-reduced-motion: reduce){.bub,.fill.empty:not(.off){animation:none}}
+@media (max-width:900px){.grid,.ogrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-mode="site">
+<div class="wrap">
+  <h1>RTU offset adjustment</h1>
+  <p class="sub" id="sub"></p>
+
+  <div class="top">
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" id="mSite" aria-pressed="true">On site: type what you read</button>
+      <button type="button" id="mDemo" aria-pressed="false">Demo</button>
     </div>
+    <span class="note" id="modeNote"></span>
+  </div>
+
+  <!-- Scene -->
+  <div class="scene">
+    <svg id="scene" viewBox="0 0 900 360" role="img" aria-label="River with water level gauge, HS40 or Green water level device, and RTU">
+      <rect width="900" height="360" fill="var(--sky)"/>
+      <path d="M0 150 L60 150 L130 320 L130 360 L0 360Z" fill="var(--ground)"/>
+      <path d="M500 150 L900 150 L900 360 L430 360 L430 320Z" fill="var(--ground)"/>
+      <rect x="130" y="320" width="300" height="40" fill="var(--ground)"/>
+      <clipPath id="chan"><path d="M60 150 L130 320 L430 320 L500 150Z"/></clipPath>
+      <g clip-path="url(#chan)">
+        <rect id="water" x="0" y="320" width="900" height="0" fill="var(--water)" opacity=".9"/>
+        <rect id="waterTop" x="0" y="320" width="900" height="3" fill="var(--water-deep)"/>
+      </g>
+
+      <g id="gaugeG">
+        <rect x="238" y="150" width="24" height="170" fill="var(--field)" stroke="var(--gauge)" stroke-width="2"/>
+        <g id="gTicks"></g>
+        <text x="250" y="140" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="var(--ink)" id="gTitle">Water level gauge</text>
+      </g>
+      <line id="gLine" x1="150" y1="320" x2="330" y2="320" stroke="var(--gauge)" stroke-width="2" stroke-dasharray="5 3"/>
+      <text id="gVal" x="145" y="315" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="15" font-weight="500" fill="var(--ink)"></text>
+
+      <g id="bubG">
+      <path d="M560 150 V200 L420 300 L400 316" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linejoin="round"/>
+      <circle class="bub" cx="400" cy="314" r="3" fill="#fff"/>
+      <circle class="bub" cx="405" cy="314" r="2.5" fill="#fff" style="animation-delay:.9s"/>
+      <circle class="bub" cx="397" cy="314" r="2" fill="#fff" style="animation-delay:1.7s"/>
+      </g>
+
+      <rect id="hsBox" x="530" y="46" width="140" height="104" rx="6" fill="var(--panel)" stroke="var(--hs)" stroke-width="2"/>
+      <rect x="542" y="58" width="116" height="38" rx="4" fill="#0d1c21"/>
+      <text id="hsVal" x="650" y="86" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="24" fill="#7fe3b0"></text>
+      <text x="600" y="120" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="var(--ink)" id="hsName">HS40</text>
+      <text x="600" y="138" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="11" fill="var(--muted)" id="hsSub">gas purge bubbler</text>
+
+      <line x1="670" y1="76" x2="740" y2="76" stroke="var(--rtu)" stroke-width="3"/>
+      <text x="705" y="66" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--rtu)">4–20 mA</text>
+
+      <rect x="740" y="46" width="130" height="104" rx="6" fill="var(--panel)" stroke="var(--rtu)" stroke-width="2"/>
+      <rect x="750" y="58" width="110" height="38" rx="4" fill="#0d1c21"/>
+      <text id="rtuVal" x="850" y="86" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="24" fill="#ffb46b"></text>
+      <text x="805" y="120" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="var(--ink)">RTU</text>
+      <text id="rtuSub" x="805" y="138" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)"></text>
+    </svg>
+  </div>
+
+  <!-- Three parts -->
+  <div class="grid">
+    <section class="card" aria-labelledby="hSensor">
+      <div class="head"><div><h2 id="hSensor">Sensor: water level gauge</h2><p class="role">Water level indicator in the river</p></div><span class="badge" id="bdGauge">optional</span></div>
+      <label class="chk" for="gaugeOff"><input type="checkbox" id="gaugeOff"> <span>Disable gauge. We do not decide the water height, only the HS40 is used.</span></label>
+      <p class="note" id="gOffNote" style="display:none">Needed now: the RTU follows the gauge because the HS40 was replaced.</p>
+      <div class="fill" id="fillGauge">
+        <span class="chip">Enter reading</span>
+        <label for="gauge">Level shown on the gauge (m)</label>
+        <input id="gauge" type="number" step="0.01" min="0" placeholder="e.g. 10.00" inputmode="decimal">
+      </div>
+      <div class="demo-only">
+        <label for="gaugeSl">Demo: real water level (<span id="gaugeSlV">10.00</span> m)</label>
+        <input id="gaugeSl" type="range" min="0" max="30" step="0.01" value="10">
+      </div>
+      <p class="note" id="gCardNote">Only a cross-check. It never changes the offset.</p>
+    </section>
+
+    <section class="card" id="hsCard" aria-labelledby="hHS">
+      <div class="head"><div><h2 id="hHS">HS40</h2><p class="role" id="hsRole">Compact gas purge compressor and bubbler system</p></div><span class="badge" id="bdHs">reference</span></div>
+      <label class="chk" for="hsAlt"><input type="checkbox" id="hsAlt"> <span>HS40 was replaced by a Green water level device. The RTU then follows the water level gauge.</span></label>
+      <p class="note" id="hsAltNote" style="display:none">Untick "Disable gauge" first. The gauge is needed when the HS40 is replaced.</p>
+      <div>
+        <label for="hsRange"><span id="hsRangeLbl">Range set on the HS40</span> (0 to m)</label>
+        <input id="hsRange" type="number" step="1" min="1" max="200" value="30">
+        <div class="btns" id="hsPre" style="margin-top:6px"></div>
+      </div>
+      <div class="fill" id="fillHs">
+        <span class="chip" id="chipHs">Enter reading</span>
+        <label for="hsIn" id="hsInLbl">HS40 display shows (m)</label>
+        <input id="hsIn" type="number" step="0.01" placeholder="e.g. 10.15" inputmode="decimal">
+      </div>
+      <div class="demo-only">
+        <label for="hsErr">Demo: <span class="dev">HS40</span> error against the gauge (<span id="hsErrV">+0.15</span> m)</label>
+        <input id="hsErr" type="range" min="-1" max="1" step="0.01" value="0.15">
+      </div>
+      <p class="locked" id="hsLocked">We cannot control anything on the HS40. Only read the range and the display.</p>
+    </section>
+
+    <section class="card" aria-labelledby="hRTU">
+      <div class="head"><div><h2 id="hRTU">RTU</h2><p class="role">Range and current offset, new offset below</p></div><span class="badge" id="rtuBadge">0–30 m</span></div>
+      <div>
+        <label for="rtuRange">Range (0 to m), same as <span class="dev">HS40</span></label>
+        <input id="rtuRange" type="number" step="1" min="1" max="200" value="30">
+        <div class="btns" id="rtuPre" style="margin-top:6px"></div>
+      </div>
+      <div class="warn" id="rangeWarn"></div>
+      <div class="fill" id="fillCur">
+        <span class="chip">Enter RTU setting</span>
+        <label for="curOff">Offset already set in the RTU now (m)</label>
+        <input id="curOff" type="number" step="0.01" min="-10" max="10" value="0" inputmode="decimal">
+      </div>
+      <div class="fill" id="fillRaw">
+        <span class="chip">Enter reading</span>
+        <label for="rawIn">RTU display shows now (m)</label>
+        <input id="rawIn" type="number" step="0.01" placeholder="e.g. 9.75" inputmode="decimal">
+      </div>
+      <div class="demo-only">
+        <label for="wiring">Demo: RTU input error (<span id="wiringV">−0.40</span> m)</label>
+        <input id="wiring" type="range" min="-1" max="1" step="0.01" value="-0.4">
+      </div>
+      <p class="note">Enter the offset the RTU already has (0 if none, or for example 0.03 or −0.03 when servicing), then the value it displays now.</p>
+    </section>
+  </div>
+
+  <!-- Offset -->
+  <section class="offset" aria-labelledby="hOff">
+    <div>
+      <h2 id="hOff">RTU offset</h2>
+      <p id="offDesc"></p>
+    </div>
+    <div class="ogrid">
+      <div class="obox">
+        <label>Calculated offset (new value to set in the RTU)</label>
+        <div class="obig"><span id="calcOff">–</span><small>m</small></div>
+        <div class="oform" id="calcForm">Enter the <span class="dev">HS40</span> display and the RTU reading.</div>
+      </div>
+      <div class="obox">
+        <label for="offset">New offset to set in the RTU (m), editable</label>
+        <input id="offset" type="number" step="0.01" min="-10" max="10" inputmode="decimal">
+        <div class="btns">
+          <button type="button" data-d="-0.1">−0.10</button>
+          <button type="button" data-d="-0.01">−0.01</button>
+          <button type="button" data-d="0.01">+0.01</button>
+          <button type="button" data-d="0.1">+0.10</button>
+          <button type="button" id="offZero">Set 0</button>
+          <button type="button" id="useCalc">Use calculated</button>
+        </div>
+        <div class="omode" id="offMode"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Adjustment view -->
+  <section class="adjust" aria-labelledby="hAdj">
+    <h2 id="hAdj">Adjustment view</h2>
+    <div class="status wait" id="status" role="status" aria-live="polite">
+      <span class="msg" id="statusMsg"></span>
+    </div>
+    <div class="zoom">
+      <svg id="zoom" viewBox="0 0 800 210" role="img" aria-label="Magnified scale comparing HS40, gauge and RTU values"></svg>
+    </div>
+    <p class="note" id="zoomNote"></p>
+    <p class="note" id="gaugeNote"></p>
+    <ol class="steps" id="steps"></ol>
+  </section>
 </div>
 
 <script>
-    const display = document.getElementById('display');
-    function appendValue(val) { display.value += val; }
-    function clearDisplay() { display.value = ''; }
-    function calculate() {
-        try { display.value = eval(display.value); }
-        catch (error) { display.value = 'Error'; }
-    }
-</script>
+(function(){
+  var $=function(id){return document.getElementById(id)};
+  var TOL=0.02;
+  var st={mode:'site',gaugeOff:false,hsRange:30,rtuRange:30,
+          gauge:10,hsErr:0.15,wiring:-0.4,           // demo values
+          gaugeSite:null,hsSite:null,rawSite:null,   // site values
+          offMan:null,curOff:0,hsAlt:false};
+  function dev(){return st.hsAlt?'Green device':'HS40'}          // the device (range)
+  function R(){return st.hsAlt?'gauge':'HS40'}                    // what the RTU follows
+  function RR(){return st.hsAlt?'gauge reading':'HS40 display'}
 
+  function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+  function r2(x){return Math.round(x*100)/100}
+  function f2(x){return (Math.round(x*100)/100).toFixed(2)}
+  function sg(x){return (x>=0?'+':'\u2212')+Math.abs(x).toFixed(2)}
+  function setVal(el,v){if(document.activeElement!==el)el.value=(v==null?'':v)}
+
+  function presets(id,key){
+    [10,20,30,50].forEach(function(m){
+      var b=document.createElement('button');b.type='button';b.textContent='0\u2013'+m+' m';b.dataset.m=m;
+      b.addEventListener('click',function(){st[key]=m;if(st.gauge>st.hsRange)st.gauge=st.hsRange;render()});
+      $(id).appendChild(b);
+    });
+  }
+  presets('hsPre','hsRange');presets('rtuPre','rtuRange');
+
+  function compute(){
+    var g,hs,raw,disp;
+    if(st.mode==='demo'){
+      g=st.gauge;
+      hs=clamp(g+st.hsErr,0,st.hsRange);
+      var mA=4+16*hs/st.hsRange;
+      raw=(mA-4)/16*st.rtuRange+st.wiring;      // RTU value before any offset
+      disp=raw+st.curOff;                       // what the RTU shows now
+    }else{
+      g=st.gaugeSite;hs=st.hsSite;disp=st.rawSite;
+      raw=disp!=null?disp-st.curOff:null;
+    }
+    var gUse=((st.hsAlt||!st.gaugeOff)&&g!=null)?g:null;
+    var ref=st.hsAlt?g:hs;                     // what the RTU must match
+    var ready=(ref!=null&&raw!=null);
+    var calc=ready?r2(ref-raw):null;
+    var off=st.offMan!=null?st.offMan:(calc!=null?calc:0);
+    var val=raw!=null?raw+off:null;
+    return {g:g,gUse:gUse,hs:hs,ref:ref,raw:raw,disp:disp,ready:ready,calc:calc,off:off,val:val};
+  }
+
+  function drawGauge(){
+    var html='',n=10,step=st.hsRange/n;
+    for(var i=0;i<=n;i++){
+      var y=320-170*i/n,lab=Math.round(step*i*10)/10;
+      html+='<line x1="262" y1="'+y+'" x2="272" y2="'+y+'" stroke="var(--gauge)" stroke-width="1.5"/>';
+      html+='<text x="277" y="'+(y+4)+'" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--ink)">'+lab+'</text>';
+    }
+    $('gTicks').innerHTML=html;
+  }
+
+  function zoomView(d){
+    var svg=$('zoom');
+    if(!d.ready){
+      svg.innerHTML='<text x="400" y="105" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="15" fill="var(--muted)">Enter the '+RR()+' and the RTU reading to see the comparison.</text>';
+      $('zoomNote').textContent='';return;
+    }
+    var diffs=[Math.abs(d.disp-d.ref),Math.abs(d.val-d.ref)];
+    if(!st.hsAlt&&d.gUse!=null)diffs.push(Math.abs(d.gUse-d.ref));
+    var need=Math.max.apply(null,diffs)*1.25;
+    var halfs=[0.5,1,2,5,10,50],half=halfs[halfs.length-1];
+    for(var i=0;i<halfs.length;i++){if(halfs[i]>=need){half=halfs[i];break}}
+    var lo=d.ref-half,L=150,W=610;
+    function X(m){return L+clamp((m-lo)/(2*half),0,1)*W}
+    var lanes=[st.hsAlt?{name:'Gauge (reference)',v:d.ref,c:'var(--gauge)'}:{name:'HS40 display',v:d.ref,c:'var(--hs)'}];
+    if(!st.hsAlt&&d.gUse!=null)lanes.push({name:'Gauge (check)',v:d.gUse,c:'var(--gauge)'});
+    lanes.push({name:'RTU (new offset)',v:d.val,c:'var(--rtu)',rtu:true});
+    var ys=lanes.length===3?[70,112,154]:[85,140];
+    var s='';
+    for(var k=0;k<=10;k++){
+      var x=L+W*k/10,m=lo+2*half*k/10;
+      s+='<line x1="'+x+'" y1="40" x2="'+x+'" y2="180" stroke="var(--line)" stroke-width="1"/>';
+      s+='<text x="'+x+'" y="200" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--muted)">'+m.toFixed(half<=1?2:1)+'</text>';
+    }
+    var cx=X(d.ref);
+    s+='<line x1="'+cx+'" y1="34" x2="'+cx+'" y2="182" stroke="var(--hs)" stroke-width="2" stroke-dasharray="5 4"/>';
+    lanes.forEach(function(l,i){
+      l.y=ys[i];
+      s+='<text x="8" y="'+(l.y+4)+'" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="var(--ink)">'+l.name+'</text>';
+      s+='<line x1="'+L+'" y1="'+l.y+'" x2="'+(L+W)+'" y2="'+l.y+'" stroke="var(--line)" stroke-width="2"/>';
+    });
+    var rl=lanes[lanes.length-1],xr=X(d.disp),xv=X(d.val);
+    if(Math.abs(xv-xr)>3)s+='<line x1="'+xr+'" y1="'+rl.y+'" x2="'+xv+'" y2="'+rl.y+'" stroke="var(--rtu)" stroke-width="3"/>';
+    s+='<circle cx="'+xr+'" cy="'+rl.y+'" r="8" fill="var(--panel)" stroke="var(--rtu)" stroke-width="2.5"/>';
+    lanes.forEach(function(l){
+      var x=X(l.v);
+      s+='<circle cx="'+x+'" cy="'+l.y+'" r="9" fill="'+l.c+'"/>';
+      var anchor=x>L+W-70?'end':'start',tx=anchor==='end'?x-14:x+14;
+      s+='<text x="'+tx+'" y="'+(l.y-12)+'" text-anchor="'+anchor+'" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="500" fill="var(--ink)">'+f2(l.v)+' m</text>';
+    });
+    var ra=xr<L+70?'start':'end';
+    s+='<text x="'+(ra==='start'?xr+2:xr-2)+'" y="'+(rl.y+24)+'" text-anchor="'+ra+'" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--rtu)">now '+f2(d.disp)+'</text>';
+    svg.innerHTML=s;
+    $('zoomNote').textContent='Magnified scale: \u00b1'+half+' m around the '+R()+' reading. Hollow circle = RTU display now, filled = RTU with the new offset.';
+  }
+
+  function render(){
+    document.body.dataset.mode=st.mode;
+    $('mDemo').setAttribute('aria-pressed',String(st.mode==='demo'));
+    $('mSite').setAttribute('aria-pressed',String(st.mode==='site'));
+    $('modeNote').textContent=st.mode==='demo'
+      ?'Demo: move the water level and the errors to see how the offset works.'
+      :'On site: type the numbers you read from the '+R()+' and the RTU.'+(st.hsAlt?'':' The gauge is optional.');
+
+    // device naming and look
+    var alt=st.hsAlt;
+    Array.prototype.forEach.call(document.querySelectorAll('.dev'),function(n){n.textContent=dev()});
+    $('hsAlt').checked=alt;
+    $('hsCard').classList.toggle('alt',alt);
+    $('hHS').textContent=alt?'Green water level device':'HS40';
+    $('hsRole').textContent=alt?'Replaces the HS40. Not the reference now: the RTU follows the water level gauge.':'Compact gas purge compressor and bubbler system';
+    $('sub').textContent='Set the RTU range to match the '+dev()+', then set the RTU offset so the RTU value equals the '+RR()+'. Nothing on the '+dev()+' is changed.';
+    $('offDesc').textContent='The calculated offset makes the RTU value equal to the '+RR()+'. Type a different value only if needed.';
+    $('bdHs').textContent=alt?'not used':'reference';
+    $('bdGauge').textContent=alt?'reference':'optional';
+    $('gCardNote').textContent=alt?'The RTU offset follows this reading.':'Only a cross-check. It never changes the offset.';
+    $('gTitle').textContent=alt?'Water level gauge (reference)':'Water level gauge';
+    $('hsInLbl').textContent=alt?'Green device display shows (m), not used':'HS40 display shows (m)';
+    $('chipHs').textContent=alt?'Not used':'Enter reading';
+    $('hsIn').disabled=alt;
+    $('gaugeOff').disabled=alt;$('gOffNote').style.display=alt?'block':'none';
+    $('hsAlt').disabled=st.gaugeOff;$('hsAltNote').style.display=st.gaugeOff?'block':'none';
+    $('hsBox').setAttribute('opacity',alt?'.6':'1');
+    var stepsHtml=alt
+      ?['Read the water level on the gauge and enter it. The Green water level device is not the reference.',
+        'Read the range of the Green device and set the RTU range to the same range.',
+        'Enter the offset already set in the RTU (0 if none) and the value the RTU displays now.',
+        'Type the calculated offset into the RTU, then check the RTU display matches the gauge reading.']
+      :['Read the range and the display on the HS40 and enter them.',
+        'Set the RTU range to the same range as the HS40.',
+        'Enter the offset already set in the RTU (0 if none) and the value the RTU displays now.',
+        'Type the calculated offset into the RTU, then check the RTU display matches the HS40 display.',
+        'The gauge reading is optional and can be disabled.'];
+    $('steps').innerHTML=stepsHtml.map(function(t){return '<li>'+t+'</li>'}).join('');
+    $('hsRangeLbl').textContent=alt?'Range of the device':'Range set on the HS40';
+    $('hsLocked').textContent=alt?'We cannot configure this device. Only read its range and its display.':'We cannot control anything on the HS40. Only read the range and the display.';
+    $('hsName').textContent=alt?'Green water level':'HS40';
+    $('hsSub').textContent=alt?'not the reference':'gas purge bubbler';
+    $('hsBox').setAttribute('stroke',alt?'#2f9e44':'var(--hs)');
+    $('hsBox').setAttribute('stroke-width',alt?'4':'2');
+    $('bubG').style.display=alt?'none':'';
+    if(alt)st.gaugeOff=false;
+
+    var demo=st.mode==='demo';
+    $('hsIn').readOnly=demo;$('rawIn').readOnly=demo;$('gauge').readOnly=demo;
+    $('gauge').disabled=(st.gaugeOff&&!alt);
+    $('gaugeOff').checked=st.gaugeOff;
+    var d=compute();
+
+    // inputs
+    setVal($('gauge'),d.g==null?null:r2(d.g));
+    $('gaugeSl').max=st.hsRange;setVal($('gaugeSl'),st.gauge);
+    $('gaugeSlV').textContent=f2(st.gauge);
+    setVal($('hsRange'),st.hsRange);setVal($('rtuRange'),st.rtuRange);
+    setVal($('hsIn'),d.hs==null?null:r2(d.hs));
+    setVal($('rawIn'),d.disp==null?null:r2(d.disp));
+    setVal($('curOff'),st.curOff);
+    setVal($('offset'),r2(d.off));
+    $('hsErrV').textContent=sg(st.hsErr);$('wiringV').textContent=sg(st.wiring);
+    $('rtuBadge').textContent='0\u2013'+st.rtuRange+' m';
+    Array.prototype.forEach.call($('hsPre').children,function(b){b.setAttribute('aria-pressed',String(+b.dataset.m===st.hsRange))});
+    Array.prototype.forEach.call($('rtuPre').children,function(b){b.setAttribute('aria-pressed',String(+b.dataset.m===st.rtuRange))});
+
+    // highlight states
+    $('fillGauge').classList.toggle('off',st.gaugeOff&&!alt);
+    $('fillGauge').classList.toggle('empty',d.g==null);
+    $('fillHs').classList.toggle('off',alt);
+    $('fillHs').classList.toggle('empty',!alt&&d.hs==null);
+    $('fillRaw').classList.toggle('empty',d.disp==null);
+
+    var w=$('rangeWarn');
+    if(st.rtuRange!==st.hsRange){
+      w.style.display='block';
+      w.textContent='RTU range (0\u2013'+st.rtuRange+' m) is not the same as the '+dev()+' range (0\u2013'+st.hsRange+' m). Set the RTU range to 0\u2013'+st.hsRange+' m first. An offset cannot correct a wrong range.';
+    }else w.style.display='none';
+
+    // scene
+    var lvl=d.gUse!=null?d.gUse:(alt?null:d.hs);
+    var wy=lvl==null?320:320-170*clamp(lvl/st.hsRange,0,1);
+    $('water').setAttribute('y',wy);$('water').setAttribute('height',320-wy+2);
+    $('waterTop').setAttribute('y',wy);
+    $('gaugeG').setAttribute('opacity',(st.gaugeOff&&!alt)?'.3':'1');
+    var gl=$('gLine');
+    gl.setAttribute('y1',wy);gl.setAttribute('y2',wy);
+    gl.setAttribute('stroke',d.gUse!=null?'var(--gauge)':'var(--hs)');
+    gl.style.display=lvl==null?'none':'';
+    $('gVal').setAttribute('y',wy-5);
+    $('gVal').textContent=lvl==null?'':(d.gUse!=null?f2(d.gUse)+' m':dev()+' '+f2(d.hs)+' m');
+    $('hsVal').textContent=d.hs==null?'\u2013':f2(d.hs)+' m';
+    $('rtuVal').textContent=d.disp==null?'\u2013':f2(d.disp)+' m';
+    $('rtuSub').textContent='range 0\u2013'+st.rtuRange+'  offset now '+sg(st.curOff);
+    drawGauge();
+
+    // offset panel
+    $('calcOff').textContent=d.calc==null?'\u2013':sg(d.calc);
+    $('calcForm').textContent=d.ready?((alt?'Gauge ':'HS40 ')+f2(d.ref)+' \u2212 RTU '+f2(d.disp)+' + current offset '+sg(st.curOff)+' = '+sg(d.calc)+' m'):'Enter the '+RR()+' and the RTU reading.';
+    $('useCalc').disabled=(st.offMan==null);
+    $('offMode').textContent=st.offMan==null
+      ?(d.ready?'Auto: this is the calculated value.':'Waiting for readings.')
+      :'Manual value in use'+(d.calc!=null?' (calculated: '+sg(d.calc)+' m)':'')+'.';
+
+    // status
+    var sEl=$('status'),msg=$('statusMsg');
+    if(!d.ready){
+      sEl.className='status wait';
+      msg.textContent='Enter the '+RR()+' and the RTU reading to get the offset.';
+    }else if(st.rtuRange!==st.hsRange){
+      sEl.className='status warn';
+      msg.textContent='Set the RTU range to 0\u2013'+st.hsRange+' m to match the '+dev()+' before you trust the offset.';
+    }else{
+      var diff=r2(d.val-d.ref);
+      if(Math.abs(diff)<=TOL){
+        sEl.className='status ok';
+        msg.textContent='With offset '+sg(d.off)+' m the RTU will read '+f2(d.val)+' m, matching the '+R()+'.';
+      }else{
+        sEl.className='status bad';
+        msg.textContent='With offset '+sg(d.off)+' m the RTU would read '+f2(Math.abs(diff))+' m '+(diff<0?'lower':'higher')+' than the '+R()+'. Calculated offset: '+sg(d.calc)+' m.';
+      }
+    }
+
+    // gauge cross-check
+    var gn=$('gaugeNote');
+    if(alt){
+      gn.textContent='The HS40 was replaced by a Green water level device. The RTU follows the water level gauge, not the device display.';
+    }else if(d.gUse!=null&&d.hs!=null){
+      var gd=r2(d.hs-d.gUse);
+      gn.textContent=Math.abs(gd)<=TOL
+        ?'Gauge check: the HS40 display agrees with the gauge.'
+        :'Gauge check: the HS40 display is '+f2(Math.abs(gd))+' m '+(gd>0?'higher':'lower')+' than the gauge. This is not changed at the RTU; only the HS40 is followed.';
+    }else gn.textContent=st.gaugeOff?'Gauge disabled: only the HS40 is used.':'';
+
+    zoomView(d);
+  }
+
+  function numIn(id,fn){
+    $(id).addEventListener('input',function(e){
+      var raw=e.target.value,v=parseFloat(raw);
+      fn(raw===''||isNaN(v)?null:v);render();
+    });
+  }
+  $('mDemo').addEventListener('click',function(){st.mode='demo';st.offMan=null;render()});
+  $('mSite').addEventListener('click',function(){
+    if(st.mode==='demo'){
+      var d=compute();st.gaugeSite=r2(d.g);st.hsSite=r2(d.hs);st.rawSite=r2(d.disp);
+    }
+    st.mode='site';st.offMan=null;render();
+  });
+  $('hsAlt').addEventListener('change',function(e){st.hsAlt=e.target.checked;if(st.hsAlt)st.gaugeOff=false;st.offMan=null;render()});
+  $('gaugeOff').addEventListener('change',function(e){st.gaugeOff=e.target.checked;render()});
+  numIn('gauge',function(v){if(st.mode==='demo'){if(v!=null)st.gauge=clamp(v,0,st.hsRange)}else st.gaugeSite=v});
+  $('gaugeSl').addEventListener('input',function(e){st.gauge=+e.target.value;render()});
+  numIn('hsRange',function(v){if(v!=null){st.hsRange=clamp(Math.round(v),1,200);if(st.gauge>st.hsRange)st.gauge=st.hsRange}});
+  numIn('rtuRange',function(v){if(v!=null)st.rtuRange=clamp(Math.round(v),1,200)});
+  numIn('hsIn',function(v){st.hsSite=v});
+  numIn('rawIn',function(v){st.rawSite=v});
+  numIn('curOff',function(v){st.curOff=v==null?0:clamp(v,-10,10)});
+  numIn('offset',function(v){if(v!=null)st.offMan=clamp(v,-10,10)});
+  $('hsErr').addEventListener('input',function(e){st.hsErr=+e.target.value;render()});
+  $('wiring').addEventListener('input',function(e){st.wiring=+e.target.value;render()});
+  Array.prototype.forEach.call(document.querySelectorAll('[data-d]'),function(b){
+    b.addEventListener('click',function(){var d=compute();st.offMan=clamp(r2(d.off+parseFloat(b.dataset.d)),-10,10);render()});
+  });
+  $('offZero').addEventListener('click',function(){st.offMan=0;render()});
+  $('useCalc').addEventListener('click',function(){st.offMan=null;render()});
+  ['gauge','hsRange','rtuRange','hsIn','rawIn','curOff','offset'].forEach(function(id){$(id).addEventListener('blur',render)});
+
+  render();
+})();
+</script>
 </body>
 </html>
